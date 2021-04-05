@@ -1,0 +1,55 @@
+version: 2.1
+orbs:
+  ruby: circleci/ruby@0.1.2 
+
+jobs:
+  build:
+    docker:
+      - image: circleci/ruby:2.6.3-stretch-node
+    # GitHubのリポジトリ名と同じにする
+    executor: ~/myapp
+    steps:
+      - checkout:
+     # GitHubのリポジトリ名と同じにする
+          path: ~/myapp
+      - run:
+          name: Which bundler?
+          command: bundle -v
+      - ruby/bundle-install
+  test:
+    docker:
+      - image: circleci/ruby:2.6.3-stretch-node
+      - image: circleci/mysql:5.5
+        envirnment: 
+          MYSQL_ROOT_PASSWORD: password 
+          MYSQL_DATABASE: app_name_test
+          MYSQL_USER: root 
+    envirnment:
+      BUNDLE_JOBS: "3"
+      BUNDLE_RETRY: "3"
+      APP_DATABASE_HOST: "127.0.0.1"
+      RAILS_ENV: test
+    working_directory: ~/myapp
+    steps: 
+      - checkout:
+          path: ~/myapp
+      - ruby/install-deps 
+      - run: 
+          name: Databse setup
+          command: bundle exec rails db:migrate
+      - run:
+          name: test
+          command: bundle exec rake test
+
+workflows:
+  version: 2
+  # workflow nameを定義
+  build_and_test:
+    jobs:
+      - build
+      - test:
+          requires:
+            -build
+
+
+
